@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "battlesnake"
+version = "0.1.0"
+description = ""
+authors = ["n0nuser <gonzrubio.pablo@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.81.0"
+uvicorn = "^0.18.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+flake8 = "^5.0.4"
+black = {version = "^22.8.0", allow-prereleases = true}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
