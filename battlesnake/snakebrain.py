@@ -1,4 +1,40 @@
 from battlesnake.classes import Coordinate, Board, Snake
+from battlesnake.astar import astar, manhattan_distance, get_board_as_maze
+from typing import List, Tuple, Union
+
+
+def get_safe_moves(board: Board, you: Snake):
+    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
+    possible_moves = {"up": up(you.head), "down": down(you.head), "left": left(you.head), "right": right(you.head)}
+
+    avoid_moving_backwards(you, is_move_safe)
+    avoid_moving_out_of_board(board, is_move_safe, possible_moves)
+    avoid_myself(you, is_move_safe, possible_moves)
+    avoid_other_snakes(board, is_move_safe, possible_moves)
+
+    return [move for move, isSafe in is_move_safe.items() if isSafe]
+
+
+def get_smart_moves(board: Board, you: Snake, LOGGER) -> str:
+    if you.health < 50:
+        # Low health, chase food
+        path = chase_food(board, you, LOGGER)
+    else:
+        # Loop until health below 50
+        # path = chase_tail(board, you, LOGGER)
+        path = chase_tail_avoid_food(board, you, LOGGER)
+
+    if not path:
+        return None, None
+
+    coord = path[1] if len(path) > 1 else path[0]
+    move_coord = Coordinate(x=coord[0], y=coord[1])  # First coord is current position, second is next move
+    move = get_move_from_coord(move_coord, you)
+    return move_coord, move
+
+
+# //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+# //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 def up(head):
@@ -15,19 +51,6 @@ def left(head):
 
 def right(head):
     return Coordinate(x=head.x + 1, y=head.y)
-
-
-def get_safe_moves(board: Board, you: Snake):
-    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
-    possible_moves = {"up": up(you.head), "down": down(you.head), "left": left(you.head), "right": right(you.head)}
-
-    avoid_moving_backwards(you.body, is_move_safe)
-    avoid_moving_out_of_board(board, is_move_safe, possible_moves)
-    avoid_myself(you, is_move_safe, possible_moves)
-    avoid_other_snakes(board, is_move_safe, possible_moves)
-
-    safe_moves_list = [move for move, isSafe in is_move_safe.items() if isSafe]
-    return is_move_safe, safe_moves_list
 
 
 def avoid_other_snakes(board: Board, is_move_safe: dict, possible_moves: dict):
@@ -50,17 +73,17 @@ def avoid_moving_out_of_board(board: Board, is_move_safe: dict, possible_moves: 
             is_move_safe[key] = False
 
 
-def avoid_moving_backwards(body: Coordinate, is_move_safe: dict):
-    if body[1].x < body[0].x:  # Neck is left of head, don't move left
+def avoid_moving_backwards(you: Snake, is_move_safe: dict):
+    if you.body[1].x < you.body[0].x:  # Neck is left of head, don't move left
         is_move_safe["left"] = False
 
-    elif body[1].x > body[0].x:  # Neck is right of head, don't move right
+    elif you.body[1].x > you.body[0].x:  # Neck is right of head, don't move right
         is_move_safe["right"] = False
 
-    elif body[1].y < body[0].y:  # Neck is below head, don't move down
+    elif you.body[1].y < you.body[0].y:  # Neck is below head, don't move down
         is_move_safe["down"] = False
 
-    elif body[1].y > body[0].y:  # Neck is above head, don't move up
+    elif you.body[1].y > you.body[0].y:  # Neck is above head, don't move up
         is_move_safe["up"] = False
 
 
@@ -79,14 +102,36 @@ def at_body(coord: Coordinate, you: Snake):
     return coord in you.body
 
 
-def get_shortest_distance(start_coord: Coordinate, end_coord: Coordinate, board: Board):
-    x_distance = abs(end_coord["x"] - start_coord["x"])
-    y_distance = abs(end_coord["y"] - start_coord["y"])
-    choices = [
-        x_distance + y_distance,
-        abs(x_distance + board.width) + y_distance,
-        x_distance + abs(y_distance + board.height),
-        abs(x_distance + board.width) + abs(y_distance + board.height),
-    ]
-    print(choices)
-    return min(choices)
+def get_move_from_coord(coord: Coordinate, you: Snake):
+    if coord.x > you.head.x:
+        return "right"
+    elif coord.x < you.head.x:
+        return "left"
+    elif coord.y > you.head.y:
+        return "up"
+    elif coord.y < you.head.y:
+        return "down"
+
+
+def get_nearest_coord(start: Coordinate, coords: List[Coordinate], LOGGER) -> Coordinate:
+    """Return the nearest coord from you"""
+    coords_values = sorted({manhattan_distance(start, coord): index for index, coord in enumerate(coords)}.items())
+    return coords[coords_values[0][1]]
+
+
+def chase_tail(board: Board, you: Snake, LOGGER) -> Union[List[Tuple[int, int]], None]:
+    tail = you.body[len(you.body) - 1]
+    board = get_board_as_maze(board)
+    return astar(board, you.head, tail, LOGGER)
+
+
+def chase_tail_avoid_food(board: Board, you: Snake, LOGGER) -> Union[List[Tuple[int, int]], None]:
+    tail = you.body[len(you.body) - 1]
+    board = get_board_as_maze(board, food=True)
+    return astar(board, you.head, tail, LOGGER)
+
+
+def chase_food(board: Board, you: Snake, LOGGER) -> Union[List[Tuple[int, int]], None]:
+    food = get_nearest_coord(you.head, board.food, LOGGER)
+    board = get_board_as_maze(board)
+    return astar(board, you.head, food, LOGGER)

@@ -32,27 +32,23 @@ def end(game: Game, turn: int, board: Board, you: Snake, LOGGER):
 
 def move(game: Game, turn: int, board: Board, you: Snake, LOGGER) -> typing.Dict:
     begin_time = time.perf_counter()
-    is_move_safe, safe_moves_list = snakebrain.get_safe_moves(board, you)
+    safe_moves_list = snakebrain.get_safe_moves(board, you)
     safe_time = time.perf_counter() - begin_time
-    # is_move_safe, smart_moves_list = snakebrain.get_smart_moves(board, you, is_move_safe)
-    # smart_time = time.perf_counter() - begin_time
+    smart_coord, smart_move = snakebrain.get_smart_moves(board, you, LOGGER)
+    smart_time = time.perf_counter() - begin_time
 
-    # if smart_moves_list:
-    #     LOGGER.info(f"Smart! {smart_moves_list}")
-    #     move = random.choice(smart_moves_list)
-    # elif safe_moves_list:
-    if safe_moves_list:
-        LOGGER.info(f"Safe! {safe_moves_list}")
+    if smart_move:
+        LOGGER.info(f"Smart! {smart_coord} ({smart_move})")
+        move = smart_move
+    elif safe_moves_list:
         move = random.choice(safe_moves_list)
+        LOGGER.info(f"Safe! {safe_moves_list} -> {move}")
     else:
         LOGGER.critical("No safe moves! Moving down")
         move = "down"
 
-    # TODO: Step 4 - Move towards food instead of random, to regain health and survive longer
-    # food = board.food
-
     total_time = time.perf_counter() - begin_time
-    LOGGER.debug(f"Moved {move} in {total_time/1000:2f}ms (safe: {safe_time/1000:2f}ms)")
+    LOGGER.debug(f"Moved {move} in {total_time/1000:2f}ms (safe: {safe_time/1000:2f}ms, smart: {smart_time/1000:2f}ms)")
     return {"move": move, "shout": f"{move.upper()} SUUUUUUU"}
 
 
