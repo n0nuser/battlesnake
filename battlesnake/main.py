@@ -10,34 +10,34 @@ def info() -> typing.Dict:
     return {
         "apiversion": version,
         "author": "Trovador",  # TODO: Your Battlesnake Username
-        "color": "#007bff",  # TODO: Choose color
-        "head": "bonhomme",  # TODO: Choose head
-        "tail": "bonhomme",  # TODO: Choose tail
+        "color": "#119484",  # TODO: Choose color
+        "head": "cosmic-horror",  # TODO: Choose head
+        "tail": "cosmic-horror",  # TODO: Choose tail
     }
 
 
 def start(game: Game, turn: int, board: Board, you: Snake, LOGGER):
     """Ref: https://docs.battlesnake.com/api/requests/start"""
-    LOGGER.warning("START!")
+    LOGGER.info("START!")
 
 
 def end(game: Game, turn: int, board: Board, you: Snake, LOGGER):
     """Ref: https://docs.battlesnake.com/api/requests/end"""
-    LOGGER.warning("\nEND OF GAME!")
-    LOGGER.warning(game)
-    LOGGER.warning(turn)
-    LOGGER.warning(board)
-    LOGGER.warning(you)
+    LOGGER.info("\nEND OF GAME!")
+    LOGGER.info(game + "\n")
+    LOGGER.info(turn + "\n")
+    LOGGER.info(board + "\n")
+    LOGGER.info(you + "\n")
 
 
 def move(game: Game, turn: int, board: Board, you: Snake, LOGGER) -> typing.Dict:
     begin_time = time.perf_counter()
     safe_moves_list = snakebrain.get_safe_moves(board, you)
     safe_time = time.perf_counter() - begin_time
-    smart_coord, smart_move = snakebrain.get_smart_moves(board, you, LOGGER)
+    smart_coord, smart_move = snakebrain.get_smart_moves(board, you, game, LOGGER)
     smart_time = time.perf_counter() - begin_time
 
-    if smart_move:
+    if smart_move and smart_move in safe_moves_list:
         LOGGER.info(f"Smart! {smart_coord} ({smart_move})")
         move = smart_move
     elif safe_moves_list:
@@ -48,11 +48,14 @@ def move(game: Game, turn: int, board: Board, you: Snake, LOGGER) -> typing.Dict
         move = "down"
 
     total_time = time.perf_counter() - begin_time
-    LOGGER.debug(f"Moved {move} in {total_time/1000:2f}ms (safe: {safe_time/1000:2f}ms, smart: {smart_time/1000:2f}ms)")
+    LOGGER.debug(
+        f"Moved {move} in {total_time/1000:2f}ms (safe: {safe_time/1000:2f}ms, smart: {smart_time/1000:2f}ms)"
+    )
     return {"move": move, "shout": f"{move.upper()} SUUUUUUU"}
 
 
 # Start server when `python main.py` is run
 if __name__ == "__main__":
     from battlesnake.api import run_server
+
     run_server()

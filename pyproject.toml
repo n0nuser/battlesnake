@@ -8,6 +8,7 @@ authors = ["n0nuser <gonzrubio.pablo@gmail.com>"]
 python = "^3.8"
 fastapi = "^0.81.0"
 uvicorn = "^0.18.3"
+tabulate = "^0.8.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

@@ -1,6 +1,7 @@
-import heapq
 from battlesnake.classes import Coordinate, Board
+from tabulate import tabulate
 from typing import List, Tuple, Union
+import heapq
 
 
 def get_index(coordinate: Coordinate, board: Board):
@@ -19,21 +20,32 @@ def manhattan_distance(start: Coordinate, goal: Coordinate):
     return abs(start.x - goal.x) + abs(start.y - goal.y)
 
 
-def get_board_as_maze(board: Board, hazards: bool = True, snakes: bool = True, food: bool = False) -> List[List[int]]:
+def get_board_as_maze(
+    board: Board, hazards: bool = True, snakes: bool = True, food: bool = False, goal: Coordinate = None, LOGGER=None
+) -> List[List[int]]:
     maze = [[0 for _ in range(board.width)] for _ in range(board.height)]
+    LOGGER.critical(f"len of maze (x): {len(maze)}")
+    LOGGER.critical(f"len of maze (y): {len(maze[0])}")
+
+    if food:
+        for food in board.food:
+            LOGGER.debug(f"Adding food {food}")
+            maze[food.y][food.x] = 1
+
+    if goal:
+        LOGGER.debug(f"Adding goal {goal}")
+        maze[goal.y][goal.x] = 0
+
     if hazards:
         for hazard in board.hazards:
-            index = get_index(hazard, board)
-            maze[index % board.width][index // board.width] = 1
+            LOGGER.debug(f"Adding hazard {hazard}")
+            maze[hazard.y][hazard.x] = 1
+
     if snakes:
         for snake in board.snakes:
             for coordinate in snake.body:
-                index = get_index(coordinate, board)
-                maze[index % board.width][index // board.width] = 1
-    if food:
-        for food in board.food:
-            index = get_index(food, board)
-            maze[index % board.width][index // board.width] = 1
+                LOGGER.debug(f"Adding snake coordinate {coordinate}")
+                maze[coordinate.y][coordinate.x] = 1
     return maze
 
 
@@ -77,21 +89,13 @@ def return_path(current_node: Node) -> Tuple[int, int]:
 def print_board(board: List[List[int]], path: List[Tuple[int, int]] = None):
     if path:
         for step in path:
-            board[step[0]][step[1]] = 2
-
-    for row in board:
-        line = []
-        for col in row:
-            if col == 1:
-                line.append("\u2588")
-            elif col == 0:
-                line.append(" ")
-            elif col == 2:
-                line.append(".")
-        print("".join(line))
+            board[step[0]][step[1]] = "·"
+    print(tabulate(board, tablefmt="fancy_grid"))
 
 
-def astar(maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate, LOGGER) -> Union[List[Tuple[int, int]], None]:
+def astar(
+    maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate, LOGGER
+) -> Union[List[Tuple[int, int]], None]:
     """
     Adaptation of https://gist.github.com/ryancollingwood/32446307e976a11a1185a5394d6657bc
     """
@@ -135,7 +139,7 @@ def astar(maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate,
             # it will not contain the destination
             LOGGER.warning("Giving up on pathfinding too many iterations")
             path = return_path(current_node)
-            print_board(maze, path)
+            # print_board(maze, path)
             return path
 
         # Get the current node
@@ -145,7 +149,7 @@ def astar(maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate,
         # Found the goal
         if current_node == end_node:
             path = return_path(current_node)
-            print_board(maze, path)
+            # print_board(maze, path)
             return path
 
         # Generate children
@@ -165,7 +169,7 @@ def astar(maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate,
             ):
                 continue
 
-            # Make sure walkable terrain
+            # Make sure walkable terrain, which is 0
             if maze[node_position[0]][node_position[1]] != 0:
                 continue
 
