@@ -1,52 +1,7 @@
-from battlesnake.classes import Coordinate, Board
+from battlesnake.utils.classes import Coordinate
 from tabulate import tabulate
 from typing import List, Tuple, Union
 import heapq
-
-
-def get_index(coordinate: Coordinate, board: Board):
-    return coordinate.y * board.width + coordinate.x
-
-
-def get_coord_from_index(index, board: Board):
-    return Coordinate(index % board.width, index // board.width)
-
-
-def manhattan_distance(start: Coordinate, goal: Coordinate):
-    """
-    Manhattan distance.
-    Ref: https://en.wikipedia.org/wiki/Taxicab_geometry.
-    """
-    return abs(start.x - goal.x) + abs(start.y - goal.y)
-
-
-def get_board_as_maze(
-    board: Board, hazards: bool = True, snakes: bool = True, food: bool = False, goal: Coordinate = None, LOGGER=None
-) -> List[List[int]]:
-    maze = [[0 for _ in range(board.width)] for _ in range(board.height)]
-    LOGGER.critical(f"len of maze (x): {len(maze)}")
-    LOGGER.critical(f"len of maze (y): {len(maze[0])}")
-
-    if food:
-        for food in board.food:
-            LOGGER.debug(f"Adding food {food}")
-            maze[food.y][food.x] = 1
-
-    if goal:
-        LOGGER.debug(f"Adding goal {goal}")
-        maze[goal.y][goal.x] = 0
-
-    if hazards:
-        for hazard in board.hazards:
-            LOGGER.debug(f"Adding hazard {hazard}")
-            maze[hazard.y][hazard.x] = 1
-
-    if snakes:
-        for snake in board.snakes:
-            for coordinate in snake.body:
-                LOGGER.debug(f"Adding snake coordinate {coordinate}")
-                maze[coordinate.y][coordinate.x] = 1
-    return maze
 
 
 class Node:
@@ -94,7 +49,7 @@ def print_board(board: List[List[int]], path: List[Tuple[int, int]] = None):
 
 
 def astar(
-    maze: List[List[int]], start_coord: Coordinate, end_coord: Coordinate, LOGGER
+    game_state: List[List[int]], start_coord: Coordinate, end_coord: Coordinate, LOGGER
 ) -> Union[List[Tuple[int, int]], None]:
     """
     Adaptation of https://gist.github.com/ryancollingwood/32446307e976a11a1185a5394d6657bc
@@ -120,7 +75,7 @@ def astar(
 
     # Adding a stop condition
     outer_iterations = 0
-    max_iterations = len(maze[0]) * len(maze) // 2
+    max_iterations = len(game_state[0]) * len(game_state) // 2
 
     # what squares do we search
     adjacent_squares = (
@@ -162,15 +117,15 @@ def astar(
 
             # Make sure within range
             if (
-                node_position[0] > (len(maze) - 1)
+                node_position[0] > (len(game_state) - 1)
                 or node_position[0] < 0
-                or node_position[1] > len(maze[-1]) - 1
+                or node_position[1] > len(game_state[-1]) - 1
                 or node_position[1] < 0
             ):
                 continue
 
             # Make sure walkable terrain, which is 0
-            if maze[node_position[0]][node_position[1]] != 0:
+            if game_state[node_position[0]][node_position[1]] != 0:
                 continue
 
             # Create new node
